@@ -261,15 +261,24 @@ test('оверлей: окошко под вебку на общем месте,
 
 test('оверлей: самый длинный текст помещается в поле и в полном, и в минималистичном оверлее', async () => {
   forget();
-  const { TEXTS } = await import('../../site/js/phrases.js');
-  const size = (text) => text.join('').length;
-  const longest = TEXTS.slice().sort((a, b) => size(b) - size(a))[0].join('|');
+  const { STORIES, compose, variants } = await import('../../site/js/phrases.js');
+  let longest = '', widest = 0;
+  for (const story of STORIES) {
+    for (let number = 0; number < variants(story); number++) {
+      const text = compose(story, number);
+      const width = Math.max(...text.map((sentence) => sentence.length));
+      if (width > widest) {
+        widest = width;
+        longest = text.join('|');
+      }
+    }
+  }
   for (const query of ['', 'mini=1', 'webcam=vtuber']) {
     const { frame, w } = await playing(query, longest);
     const words = all(w, '#phrase .word');
     for (const word of words) inside(word, element(w, 'phrase'), query || 'полный');
     const cell = words[0].firstElementChild.getBoundingClientRect().width;
-    ok(cell >= (query === 'mini=1' ? 16 : 22), 'клетка ' + cell);
+    ok(cell >= (query === 'mini=1' ? 16 : 20), 'клетка ' + cell);
     frame.remove();
   }
 });

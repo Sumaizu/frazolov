@@ -1,6 +1,6 @@
 import { clean } from '../../site/js/config.js';
 import { BOTS, CHAT_KEEP, CHAT_SHOWN, CHAT_TEXT_MAX, Game, STARS, Scores, nextReset } from '../../site/js/engine.js';
-import { Phrases, TEXTS, masked } from '../../site/js/phrases.js';
+import { Phrases, STORIES, compose, masked, variants } from '../../site/js/phrases.js';
 import { fakeClock, hintAt, known, local, makeGame, memoryStorage, seeded, shown, startRound } from './fixtures.js';
 import { eq, no, ok, test } from './harness.js';
 
@@ -495,33 +495,43 @@ test('события: слушатель может обращаться к иг
   eq(game.snapshot().round, 2);
 });
 
-test('тексты: по пять коротких предложений из русских слов, первые предложения не повторяются', () => {
-  ok(TEXTS.length >= 30);
-  const firsts = new Set();
-  for (const text of TEXTS) {
-    eq(text.length, 5, text[0]);
-    for (const sentence of text) {
-      ok(/^[а-яё]+( [а-яё]+)+$/.test(sentence), sentence);
-      ok(sentence.replace(/ /g, '').length <= 30, 'длинное предложение: ' + sentence);
+test('тексты: каждый вариант каждой истории — пять коротких предложений из русских слов', () => {
+  let total = 0;
+  const bad = new Set();
+  for (const story of STORIES) {
+    const count = variants(story);
+    total += count;
+    for (let number = 0; number < count; number++) {
+      const text = compose(story, number);
+      eq(text.length, 5, text[0]);
+      for (const sentence of text) {
+        if (!/^[а-яё]+( [а-яё]+)+$/.test(sentence) || sentence.replace(/ /g, '').length > 30) bad.add(sentence);
+      }
     }
-    no(firsts.has(text[0]), text[0]);
-    firsts.add(text[0]);
   }
+  eq(Array.from(bad), [], 'длинные или негодные предложения');
+  ok(total > 100000, 'вариантов всего ' + total);
+  eq(compose(STORIES[0], 0), ['утром сосед пошёл в магазин', 'по дороге он нашёл кошелёк', 'кошелёк лежал прямо в луже',
+    'он отдал находку соседу', 'вечером ему сказали спасибо']);
+  eq(compose(STORIES[0], 100)[2], 'перчатка лежала прямо в луже');
 });
 
-test('тексты: недавние не повторяются и помнятся между запусками', () => {
+test('тексты: за тысячу раундов текст повторяется не раньше чем через 300, история не идёт два раза подряд', () => {
   const storage = memoryStorage();
   const phrases = new Phrases(storage, 'тексты', seeded(5));
-  const seen = [];
-  for (let i = 0; i < phrases.keep; i++) {
-    const text = phrases.next();
-    no(seen.includes(text[0]), text[0]);
-    seen.push(text[0]);
+  const last = new Map();
+  let previous = -1;
+  for (let i = 0; i < 1000; i++) {
+    const text = phrases.next().join('|');
+    if (last.has(text)) ok(i - last.get(text) > 300, 'повтор через ' + (i - last.get(text)) + ': ' + text);
+    ok(phrases.previous !== previous);
+    previous = phrases.previous;
+    last.set(text, i);
   }
+  ok(last.size >= 900, 'разных текстов ' + last.size);
   const again = new Phrases(storage, 'тексты', seeded(5));
-  eq(again.recent, seen);
-  no(seen.includes(again.next()[0]));
-  for (let i = 0; i < 500; i++) eq(again.next().length, 5);
+  eq(again.recent.length, 300);
+  no(again.recent.includes(again.next().join('|')));
   storage.setItem('тексты', 'не json');
   eq(new Phrases(storage, 'тексты').recent, []);
 });
