@@ -1,0 +1,67 @@
+import argparse
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from browser import ROOT, SITE, Browser, serve
+
+DOCS = ROOT / "docs"
+CAMERA_PLACEHOLDER = """(() => {
+  const camera = document.querySelector('.cam');
+  const frame = camera ? camera.getBoundingClientRect() : null;
+  if (!frame || !frame.width) return;
+  const person = document.createElement('div');
+  person.style.cssText = 'position:fixed;z-index:-1;overflow:hidden;border-radius:18px;' +
+    'background:linear-gradient(160deg,#50627f,#28334c);' +
+    'left:' + frame.left + 'px;top:' + frame.top + 'px;width:' + frame.width + 'px;height:' + frame.height + 'px';
+  const shape = 'position:absolute;left:50%;transform:translateX(-50%);background:#8495b3;';
+  person.innerHTML = '<div style="' + shape + 'top:20%;width:25%;height:33%;border-radius:50%"></div>' +
+    '<div style="' + shape + 'top:60%;width:60%;height:60%;border-radius:50% 50% 0 0"></div>';
+  document.body.prepend(person);
+})()"""
+OVERLAY_READY = "window.frazolov && document.querySelectorAll('#phrase .word').length ? 1 : 0"
+PAGE_READY = "document.getElementById('play') && !document.getElementById('play').disabled ? 1 : 0"
+
+
+def shoot_overlay(browser, base, out, query="", width=1280):
+    browser.set_size(width, 720)
+    browser.navigate(f"{base}/overlay.html?embed=1{'&' + query if query else ''}")
+    browser.wait_for(OVERLAY_READY, 30)
+    browser.evaluate(CAMERA_PLACEHOLDER)
+    time.sleep(0.5)
+    browser.screenshot(out, transparent=True)
+
+
+def shoot_page(browser, base, out):
+    browser.set_size(1440, 840)
+    browser.navigate(f"{base}/index.html")
+    browser.wait_for(PAGE_READY, 30)
+    browser.evaluate("document.getElementById('toggle-link').click()")
+    browser.evaluate("document.getElementById('link').value = 'https://gamesonstream.ru/frazolov/overlay.html'")
+    time.sleep(1.0)
+    browser.screenshot(out)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Снимки оверлея и главной страницы для README.")
+    parser.add_argument("--out", default=str(DOCS), help="куда сохранить снимки (по умолчанию docs/)")
+    out = Path(parser.parse_args().out)
+    out.mkdir(parents=True, exist_ok=True)
+    server = serve(SITE)
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        with Browser() as browser:
+            shoot_overlay(browser, base, out / "overlay.png")
+            shoot_overlay(browser, base, out / "overlay-mini.png", "mini=1", 427)
+            shoot_page(browser, base, out / "page.png")
+    finally:
+        server.shutdown()
+        server.server_close()
+    for image in sorted(out.glob("*.png")):
+        print(f"{image.name}: {image.stat().st_size // 1024} КБ")
+
+
+if __name__ == "__main__":
+    main()

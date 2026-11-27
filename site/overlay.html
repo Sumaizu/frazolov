@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Фразолов</title>
+<link rel="stylesheet" href="css/overlay.css">
+</head>
+<body>
+<div id="stage" hidden>
+  <div class="card" id="card">
+    <div class="cam"></div>
+    <section class="main" id="main">
+      <header class="head" id="head">
+        <img class="logo" src="images/logo.png" alt="Games on Stream">
+        <div class="brand">Фразолов</div>
+        <div class="brand-tiles" id="brand-tiles"></div>
+        <div class="round">раунд <b id="round"></b></div>
+        <div class="status" id="status"></div>
+        <div class="clock" id="clock" hidden></div>
+        <div class="count">открыто <b id="found">0</b> из <b id="total">0</b><span class="meter"><i id="meter"></i></span></div>
+      </header>
+      <div class="play" id="play">
+        <div class="timeline" id="timeline">
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="label" id="label"></div>
+        </div>
+        <div class="phrase" id="phrase"></div>
+      </div>
+      <div class="lobby" id="lobby" hidden>
+        <div class="letters" id="lobby-tiles"></div>
+        <h1>Угадай текст вместе с чатом</h1>
+        <p>Пиши в чат слова из текста — их буквы откроются в той же строке</p>
+        <div class="countdown" id="countdown"><b id="countdown-number"></b></div>
+      </div>
+      <div class="pause" id="pause" hidden>
+        <h2>Пауза</h2>
+        <div class="boards">
+          <div class="list" id="board-round"><h3 id="h-pause-round"></h3><ol id="pause-round"></ol></div>
+          <div class="list" id="board-total"><h3>Общий счёт</h3><ol id="pause-total"></ol></div>
+        </div>
+      </div>
+    </section>
+    <aside class="list chatbox"><h3>Чат</h3><div class="chat" id="chat"></div></aside>
+    <aside class="side" id="side">
+      <div class="list" id="box-round"><h3 id="h-round"></h3><ol id="list-round"></ol></div>
+      <div class="list grow" id="box-total"><h3>Общий счёт</h3><ol id="list-total"></ol></div>
+      <div class="list rules" id="box-rules"><h3>Как играть</h3><ul id="rules"></ul></div>
+    </aside>
+  </div>
+</div>
+<script type="module" src="js/overlay.js"></script>
+<svg class="defs" width="0" height="0" aria-hidden="true">
+  <filter id="glow" x="-20%" y="-60%" width="140%" height="220%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="blur"/>
+    <feComponentTransfer in="blur" result="halo"><feFuncA type="linear" slope="0.9"/></feComponentTransfer>
+    <feMerge><feMergeNode in="halo"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</svg>
+</body>
+</html>
